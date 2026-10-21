@@ -1,0 +1,25 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #0b1020; color: #e2e8f0; overflow: hidden; }
+.app { position: relative; width: 100vw; height: 100vh; }
+.panel { position: absolute; background: rgba(15, 23, 42, .82); backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, .2); border-radius: 14px; padding: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+.top-left { top: 16px; left: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 360px; }
+.top-left h1 { font-size: 18px; margin: 0 8px 0 0; }
+.chat { right: 16px; bottom: 16px; width: 380px; max-width: calc(100vw - 32px); height: 460px; display: flex; flex-direction: column; }
+.messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; }
+.msg { padding: 8px 12px; border-radius: 10px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; max-width: 90%; }
+.msg.user { background: #2563eb; align-self: flex-end; }
+.msg.bot { background: #1e293b; align-self: flex-start; }
+.msg pre { margin: 6px 0 0; font-size: 11px; color: #94a3b8; white-space: pre-wrap; }
+.hint, .status { font-size: 13px; color: #94a3b8; margin: 0; }
+.status { width: 100%; display: flex; align-items: center; gap: 8px; }
+form { display: flex; gap: 6px; }
+input, select { background: #1e293b; color: inherit; border: 1px solid #334155; border-radius: 8px; padding: 8px; font: inherit; }
+form input { flex: 1; min-width: 0; }
+.btn { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer; font: inherit; font-size: 14px; }
+.btn.ghost { background: #334155; } .btn.danger { background: #7f1d1d; }
+.btn.disabled, .btn:disabled { opacity: .5; pointer-events: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: #94a3b8; width: 100%; }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+.spin { width: 12px; height: 12px; border: 2px solid #475569; border-top-color: #60a5fa; border-radius: 50%; animation: s 1s linear infinite; flex: none; }
+@keyframes s { to { transform: rotate(360deg); } }
