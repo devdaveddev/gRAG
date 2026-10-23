@@ -32,6 +32,8 @@
   --color-danger: var(--red-600);
   --color-danger-text: var(--red-400);
   --color-edge: rgb(148 163 184 / .35);
+  --color-edge-strong: rgb(203 213 225 / .55);
+  --color-edge-dim: rgb(148 163 184 / .1);
 
   /* Categorical palette for entity types (assigned per type by hash) */
   --cat-1: var(--blue-400); --cat-2: var(--green-400); --cat-3: var(--red-400); --cat-4: var(--amber-400);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import Setup from "./Setup.jsx";
+import { DEMO_CHUNKS, toEvent } from "./demo.js";
 
 // Canvas needs concrete colors, so resolve the CSS tokens once.
 const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -17,41 +18,71 @@ function color(type = "Entity") {
 }
 
 const endId = (e) => (typeof e === "object" ? e.id : e);
+const linkKey = (l) => `${endId(l.source)}|${l.type}|${endId(l.target)}`;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Merge a delta into the graph, reusing existing node/link objects so the layout keeps its positions.
+// Merge a delta into the graph, reusing existing objects so the layout keeps its positions.
+// New nodes spawn next to a neighbour so they visibly "bloom" out of the existing graph.
 function merge(prev, delta) {
   const nodes = new Map(prev.nodes.map((n) => [n.id, n]));
-  const links = new Map(prev.links.map((l) => [`${endId(l.source)}|${l.type}|${endId(l.target)}`, l]));
+  const links = new Map(prev.links.map((l) => [linkKey(l), l]));
   const now = Date.now();
-  for (const n of delta.nodes || []) if (!nodes.has(n.id)) nodes.set(n.id, { ...n, born: now });
+  const spawn = (n, otherId) => {
+    const o = nodes.get(otherId);
+    if (o && o.x !== undefined) { n.x = o.x + (Math.random() - 0.5) * 12; n.y = o.y + (Math.random() - 0.5) * 12; }
+  };
+  for (const n of delta.nodes || []) {
+    const old = nodes.get(n.id);
+    if (old) { if (old.label === "Entity" && n.label !== "Entity") old.label = n.label; continue; }
+    const fresh = { ...n, born: now };
+    const l = (delta.links || []).find((l) => l.source === n.id || l.target === n.id);
+    if (l) spawn(fresh, l.source === n.id ? l.target : l.source);
+    nodes.set(n.id, fresh);
+  }
   for (const l of delta.links || []) {
-    const key = `${l.source}|${l.type}|${l.target}`;
-    // Relationships may reference entities the transformer didn't list as nodes.
     for (const id of [l.source, l.target]) if (!nodes.has(id)) nodes.set(id, { id, name: id, label: "Entity", born: now });
-    if (!links.has(key)) links.set(key, { ...l });
+    if (!links.has(linkKey(l))) links.set(linkKey(l), { ...l, born: now });
   }
   return { nodes: [...nodes.values()], links: [...links.values()] };
 }
 
 export default function App() {
   const [session, setSession] = useState(() => sessionStorage.getItem("grag-session"));
-  const connect = (t) => { sessionStorage.setItem("grag-session", t); setSession(t); };
+  const [showSetup, setShowSetup] = useState(false);
+  const connect = (t) => { sessionStorage.setItem("grag-session", t); setSession(t); setShowSetup(false); };
   const leave = () => { sessionStorage.removeItem("grag-session"); setSession(null); };
-  return session ? <Workspace session={session} onLeave={leave} /> : <Setup onConnect={connect} />;
+  return (
+    <>
+      <Workspace key={session || "demo"} session={session} onLeave={leave} onConnectClick={() => setShowSetup(true)} />
+      {showSetup && (
+        <div className="overlay" onClick={() => setShowSetup(false)}>
+          <div onClick={(e) => e.stopPropagation()}><Setup onConnect={connect} onClose={() => setShowSetup(false)} /></div>
+        </div>
+      )}
+    </>
+  );
 }
 
-function Workspace({ session, onLeave }) {
+function Workspace({ session, onLeave, onConnectClick }) {
+  const demo = !session;
   const [data, setData] = useState({ nodes: [], links: [] });
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [status, setStatus] = useState("");
-  const [progress, setProgress] = useState(null); // { done, total }
+  const [progress, setProgress] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [feed, setFeed] = useState([]);
   const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("cypher");
+  const [hover, setHover] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [hidden, setHidden] = useState(new Set());
+  const [autoFit, setAutoFit] = useState(true);
   const chatEnd = useRef(null);
   const fg = useRef(null);
-  const fitNext = useRef(true);
+  const run = useRef(0);          // bumped to cancel a running playback
+  const queue = useRef(Promise.resolve());
+  const degRef = useRef(new Map());
 
   async function api(path, opts = {}) {
     const res = await fetch(`/api${path}`, { ...opts, headers: { ...opts.headers, "X-Session": session } });
@@ -60,28 +91,102 @@ function Workspace({ session, onLeave }) {
     return res;
   }
 
+  const pushFeed = (item) => setFeed((f) => [{ ...item, k: Math.random() }, ...f].slice(0, 60));
+
+  // Reveal one extraction result: nodes first, one at a time, then the edges between them.
+  const reveal = useCallback((ev, myRun) => {
+    queue.current = queue.current.then(async () => {
+      if (run.current !== myRun) return;
+      if (ev.text) pushFeed({ kind: "read", text: ev.text });
+      const pace = Math.max(70, Math.min(320, 2400 / Math.max(1, ev.nodes.length)));
+      for (const n of ev.nodes) {
+        if (run.current !== myRun) return;
+        setData((p) => merge(p, { nodes: [n], links: [] }));
+        pushFeed({ kind: "node", label: n.label, text: n.name });
+        await sleep(pace);
+      }
+      for (const l of ev.links) {
+        if (run.current !== myRun) return;
+        setData((p) => merge(p, { nodes: [], links: [l] }));
+        pushFeed({ kind: "link", text: `${l.source} → ${l.target}`, rel: l.type.replaceAll("_", " ").toLowerCase() });
+        await sleep(Math.max(60, pace * 0.6));
+      }
+    });
+    return queue.current;
+  }, []);
+
+  const startDemo = useCallback(async () => {
+    const myRun = ++run.current;
+    queue.current = Promise.resolve();
+    setData({ nodes: [], links: [] });
+    setFeed([]); setSelected(null); setHidden(new Set()); setAutoFit(true);
+    setStatus("Demo: discovering entities from 6 sample paragraphs");
+    for (let i = 0; i < DEMO_CHUNKS.length; i++) {
+      if (run.current !== myRun) return;
+      setProgress({ done: i, total: DEMO_CHUNKS.length });
+      await reveal(toEvent(DEMO_CHUNKS[i]), myRun);
+      await sleep(500);
+    }
+    if (run.current === myRun) { setProgress(null); setStatus("Demo complete. Connect your own data to ask questions."); }
+  }, [reveal]);
+
   const loadGraph = useCallback(async () => {
     try {
-      const res = await api("/graph");
-      fitNext.current = true;
-      setData(await res.json());
+      const g = await (await api("/graph")).json();
+      setAutoFit(true);
+      setData(g);
     } catch (e) { setStatus(e.message); }
   }, []);
 
   useEffect(() => {
-    loadGraph();
+    if (demo) startDemo(); else loadGraph();
     const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [loadGraph]);
+    return () => { run.current++; window.removeEventListener("resize", onResize); };
+  }, []);
 
+  useEffect(() => {
+    fg.current?.d3Force("charge")?.strength(-170);
+    fg.current?.d3Force("link")?.distance(64);
+  }, []);
   useEffect(() => chatEnd.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
 
-  const legend = useMemo(() => {
-    const counts = new Map();
-    for (const n of data.nodes) counts.set(n.label, (counts.get(n.label) || 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  // Degree + adjacency for node sizing and hover highlight.
+  const { neighbors, legend } = useMemo(() => {
+    const nb = new Map(), deg = new Map(), counts = new Map();
+    for (const n of data.nodes) { nb.set(n.id, new Set()); counts.set(n.label, (counts.get(n.label) || 0) + 1); }
+    for (const l of data.links) {
+      const a = endId(l.source), b = endId(l.target);
+      nb.get(a)?.add(b); nb.get(b)?.add(a);
+      deg.set(a, (deg.get(a) || 0) + 1); deg.set(b, (deg.get(b) || 0) + 1);
+    }
+    degRef.current = deg;
+    return { neighbors: nb, legend: [...counts.entries()].sort((a, b) => b[1] - a[1]) };
   }, [data]);
+
+  // Frame the whole graph, but never zoom in past a readable level when there are only a few nodes.
+  const fit = useCallback(() => {
+    fg.current?.zoomToFit(600, 190);
+    setTimeout(() => { if (fg.current && fg.current.zoom() > 1.6) fg.current.zoom(1.6, 300); }, 650);
+  }, []);
+
+  // Keep the camera framing the graph as it grows, until the user takes over.
+  useEffect(() => {
+    if (!autoFit || !data.nodes.length) return;
+    const t = setTimeout(fit, 900);
+    return () => clearTimeout(t);
+  }, [data.nodes.length, autoFit, fit]);
+
+  const visible = useMemo(() => ({
+    nodes: data.nodes.filter((n) => !hidden.has(n.label)),
+    links: data.links.filter((l) => {
+      const a = data.nodes.find((n) => n.id === endId(l.source)), b = data.nodes.find((n) => n.id === endId(l.target));
+      return a && b && !hidden.has(a.label) && !hidden.has(b.label);
+    }),
+  }), [data, hidden]);
+
+  const focus = hover || selected;
+  const lit = focus ? new Set([focus, ...(neighbors.get(focus) || [])]) : null;
 
   async function onUpload(e) {
     const file = e.target.files[0];
@@ -89,23 +194,22 @@ function Workspace({ session, onLeave }) {
     if (!file) return;
     setBusy(true);
     setStatus(`Reading ${file.name}…`);
+    const myRun = ++run.current;
     try {
       const form = new FormData();
       form.append("file", file);
       const res = await api("/upload", { method: "POST", body: form });
-      // NDJSON stream: each chunk's entities are merged into the live graph as they arrive.
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
       const handle = (ev) => {
         if (ev.type === "start") setProgress({ done: 0, total: ev.total });
         else if (ev.type === "chunk") {
-          fitNext.current = true;
-          setData((prev) => merge(prev, ev));
           setProgress({ done: ev.done, total: ev.total });
           setStatus(`Extracting… chunk ${ev.done}/${ev.total}`);
+          reveal({ nodes: ev.nodes, links: ev.links, text: `Chunk ${ev.done}/${ev.total}` }, myRun);
         } else if (ev.type === "indexing") setStatus("Building vector index…");
-        else if (ev.type === "done") setStatus(`Done: ${ev.nodes} entities, ${ev.relationships} relationships from ${ev.chunks} chunks`);
+        else if (ev.type === "done") setStatus(`Done: ${ev.nodes} entities, ${ev.relationships} relationships`);
         else if (ev.type === "error") setStatus(`Error: ${ev.message}`);
       };
       for (;;) {
@@ -116,6 +220,7 @@ function Workspace({ session, onLeave }) {
         buf = lines.pop();
         lines.filter(Boolean).forEach((l) => handle(JSON.parse(l)));
       }
+      await queue.current;
     } catch (err) { setStatus(`Error: ${err.message}`); }
     setProgress(null);
     setBusy(false);
@@ -129,11 +234,10 @@ function Workspace({ session, onLeave }) {
     setMessages((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
     try {
-      const res = await api("/query", {
+      const r = await (await api("/query", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, mode }),
-      });
-      const r = await res.json();
+      })).json();
       setMessages((m) => [...m, { role: "bot", text: r.answer, cypher: r.cypher }]);
     } catch (err) { setMessages((m) => [...m, { role: "bot", text: `Error: ${err.message}` }]); }
     setBusy(false);
@@ -142,85 +246,159 @@ function Workspace({ session, onLeave }) {
   async function onClear() {
     if (!confirm("Delete the entire graph?")) return;
     await api("/graph", { method: "DELETE" });
-    setData({ nodes: [], links: [] });
+    run.current++;
+    setData({ nodes: [], links: [] }); setFeed([]);
     setStatus("Graph cleared");
   }
 
+  const sel = selected && data.nodes.find((n) => n.id === selected);
+  const toggle = (t) => setHidden((h) => { const s = new Set(h); s.has(t) ? s.delete(t) : s.add(t); return s; });
+
   return (
-    <div className="app">
+    <div className="app" onWheel={() => setAutoFit(false)} onPointerDown={() => setAutoFit(false)}>
       <ForceGraph2D
-        ref={fg} width={size.w} height={size.h} graphData={data}
-        cooldownTicks={80}
-        onEngineStop={() => { if (fitNext.current) { fitNext.current = false; fg.current?.zoomToFit(400, 120); } }}
+        ref={fg} width={size.w} height={size.h} graphData={visible}
         backgroundColor={token("--color-bg")}
-        nodeLabel={(n) => `${n.label}: ${n.name}`}
-        nodeColor={(n) => color(n.label)}
-        linkColor={() => token("--color-edge")}
-        linkDirectionalArrowLength={4} linkDirectionalArrowRelPos={1}
-        linkLabel="type"
-        nodeCanvasObjectMode={() => "after"}
+        cooldownTicks={120} d3VelocityDecay={0.28}
+        onEngineStop={() => autoFit && fit()}
+        linkCurvature={0.14}
+        linkColor={(l) => (!lit || (lit.has(endId(l.source)) && lit.has(endId(l.target))) ? token("--color-edge-strong") : token("--color-edge-dim"))}
+        linkWidth={(l) => (lit && lit.has(endId(l.source)) && lit.has(endId(l.target)) ? 1.8 : 0.7)}
+        linkDirectionalArrowLength={4} linkDirectionalArrowRelPos={0.92}
+        linkDirectionalParticles={(l) => (l.born && Date.now() - l.born < 2600 ? 4 : 0)}
+        linkDirectionalParticleWidth={2.6} linkDirectionalParticleSpeed={0.012}
+        linkLabel={(l) => l.type.replaceAll("_", " ").toLowerCase()}
+        onNodeHover={(n) => setHover(n ? n.id : null)}
+        onNodeClick={(n) => { setSelected(n.id); setAutoFit(false); fg.current?.centerAt(n.x, n.y, 500); }}
+        onBackgroundClick={() => setSelected(null)}
+        nodeLabel={() => ""}
+        nodePointerAreaPaint={(n, c, ctx) => {
+          ctx.fillStyle = c; ctx.beginPath(); ctx.arc(n.x, n.y, 6 + Math.sqrt(degRef.current.get(n.id) || 0) * 2.5, 0, 2 * Math.PI); ctx.fill();
+        }}
+        nodeCanvasObjectMode={() => "replace"}
         nodeCanvasObject={(n, ctx, scale) => {
-          // Pulse ring on freshly added nodes.
+          const deg = degRef.current.get(n.id) || 0;
+          const r = 4 + Math.sqrt(deg) * 2.4;
+          const c = color(n.label);
+          const dim = lit && !lit.has(n.id);
           const age = n.born ? Date.now() - n.born : Infinity;
+          ctx.globalAlpha = dim ? 0.18 : 1;
+          // glow
+          const g = ctx.createRadialGradient(n.x, n.y, r * 0.5, n.x, n.y, r * 3);
+          g.addColorStop(0, c + "55"); g.addColorStop(1, c + "00");
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(n.x, n.y, r * 3, 0, 2 * Math.PI); ctx.fill();
+          // birth: node scales in, ring expands outward
+          const grow = Math.min(1, age / 450);
+          ctx.beginPath(); ctx.arc(n.x, n.y, r * (0.4 + 0.6 * grow), 0, 2 * Math.PI);
+          ctx.fillStyle = c; ctx.fill();
+          ctx.lineWidth = (n.id === selected ? 2.2 : 1) / scale; ctx.strokeStyle = n.id === selected ? token("--color-text-strong") : token("--color-bg"); ctx.stroke();
           if (age < 1800) {
-            ctx.beginPath();
-            ctx.arc(n.x, n.y, 5 + (age / 1800) * 14, 0, 2 * Math.PI);
-            ctx.strokeStyle = color(n.label);
-            ctx.globalAlpha = 1 - age / 1800;
-            ctx.lineWidth = 1.5 / scale;
-            ctx.stroke();
-            ctx.globalAlpha = 1;
+            ctx.beginPath(); ctx.arc(n.x, n.y, r + (age / 1800) * 26, 0, 2 * Math.PI);
+            ctx.strokeStyle = c; ctx.globalAlpha = (1 - age / 1800) * (dim ? 0.2 : 1); ctx.lineWidth = 2 / scale; ctx.stroke();
+            ctx.globalAlpha = dim ? 0.18 : 1;
           }
-          if (scale < 1.2) return;
-          ctx.font = `${10 / scale}px sans-serif`;
-          ctx.fillStyle = token("--color-text");
-          ctx.textAlign = "center";
-          ctx.fillText(n.name, n.x, n.y + 9 / scale);
+          // label: hubs always, everyone when zoomed or highlighted
+          if (deg >= 3 || scale > 1.5 || (lit && lit.has(n.id)) || age < 2200) {
+            const fs = Math.max(3.2, 11 / scale);
+            ctx.font = `${deg >= 3 ? 600 : 500} ${fs}px ${token("--font-sans") || "sans-serif"}`;
+            ctx.textAlign = "center"; ctx.textBaseline = "top";
+            ctx.lineWidth = 3 / scale; ctx.strokeStyle = token("--color-bg"); ctx.strokeText(n.name, n.x, n.y + r + 2 / scale);
+            ctx.fillStyle = token("--color-text-strong"); ctx.fillText(n.name, n.x, n.y + r + 2 / scale);
+          }
+          ctx.globalAlpha = 1;
         }}
       />
 
-      <div className="panel top-left">
-        <h1>Graph RAG</h1>
-        <label className={`btn ${busy ? "disabled" : ""}`}>
-          Upload PDF
-          <input type="file" accept="application/pdf" onChange={onUpload} disabled={busy} hidden />
-        </label>
-        <button className="btn ghost" onClick={loadGraph}>Refresh</button>
-        <button className="btn danger" onClick={onClear}>Clear</button>
-        <button className="btn ghost" onClick={async () => { await api("/disconnect", { method: "POST" }).catch(() => {}); onLeave(); }}>Disconnect</button>
+      <header className="panel topbar">
+        <strong className="brand">Graph RAG</strong>
+        <span className={`chip ${demo ? "demo" : "live"}`}><i />{demo ? "Demo" : "Live"}</span>
+        <span className="stats">{data.nodes.length} nodes · {data.links.length} edges</span>
+        <span className="spacer" />
+        {demo ? (
+          <>
+            <button className="btn ghost" onClick={startDemo}>Replay</button>
+            <button className="btn" onClick={onConnectClick}>Connect your data</button>
+          </>
+        ) : (
+          <>
+            <label className={`btn ${busy ? "disabled" : ""}`}>Upload PDF
+              <input type="file" accept="application/pdf" onChange={onUpload} disabled={busy} hidden />
+            </label>
+            <button className="btn ghost" onClick={loadGraph}>Refresh</button>
+            <button className="btn danger" onClick={onClear}>Clear</button>
+            <button className="btn ghost" onClick={async () => { await api("/disconnect", { method: "POST" }).catch(() => {}); onLeave(); }}>Disconnect</button>
+          </>
+        )}
+        <button className="btn ghost" onClick={() => { setAutoFit(true); fit(); }} aria-label="Re-center">⤢</button>
         {progress && (
           <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={progress.done}>
             <i style={{ width: `${(progress.done / progress.total) * 100}%` }} />
           </div>
         )}
-        {status && <p className="status">{busy && <span className="spin" />}{status}</p>}
-        <p className="stats">{data.nodes.length} nodes · {data.links.length} relationships</p>
-        <div className="legend">
-          {legend.map(([k, c]) => (
-            <span key={k}><i style={{ background: color(k) }} />{k} {c}</span>
+      </header>
+
+      <aside className="panel feed" aria-live="polite">
+        <h2>Live discoveries</h2>
+        {status && <p className="status">{(busy || progress) && <span className="spin" />}{status}</p>}
+        <ul>
+          {feed.length === 0 && <li className="hint">Waiting for entities…</li>}
+          {feed.map((f) => (
+            <li key={f.k} className={f.kind}>
+              {f.kind === "node" && <><i style={{ background: color(f.label) }} /><b>{f.text}</b><em>{f.label}</em></>}
+              {f.kind === "link" && <><span className="arrow">↳</span><span>{f.text}</span><em>{f.rel}</em></>}
+              {f.kind === "read" && <span className="read">“{f.text}”</span>}
+            </li>
           ))}
-        </div>
+        </ul>
+      </aside>
+
+      <div className="panel legend" role="group" aria-label="Filter by type">
+        {legend.map(([k, c]) => (
+          <button key={k} className={hidden.has(k) ? "off" : ""} onClick={() => toggle(k)} aria-pressed={!hidden.has(k)}>
+            <i style={{ background: color(k) }} />{k} <small>{c}</small>
+          </button>
+        ))}
       </div>
 
-      <div className="panel chat">
-        <div className="messages">
-          {messages.length === 0 && <p className="hint">Upload any PDF, then ask about it, e.g. “Who founded the company and what does it build?”</p>}
-          {messages.map((m, i) => (
-            <div key={i} className={`msg ${m.role}`}>
-              {m.text}
-              {m.cypher && <pre>{m.cypher}</pre>}
-            </div>
-          ))}
-          <div ref={chatEnd} />
+      {sel && (
+        <div className="panel detail">
+          <button className="x" onClick={() => setSelected(null)} aria-label="Close">×</button>
+          <h3>{sel.name}</h3>
+          <span className="tag" style={{ borderColor: color(sel.label), color: color(sel.label) }}>{sel.label}</span>
+          <ul>
+            {data.links.filter((l) => endId(l.source) === sel.id || endId(l.target) === sel.id).map((l, i) => {
+              const out = endId(l.source) === sel.id;
+              return <li key={i}>{out ? "" : `${endId(l.source)} `}<em>{l.type.replaceAll("_", " ").toLowerCase()}</em>{out ? ` ${endId(l.target)}` : ""}</li>;
+            })}
+          </ul>
         </div>
-        <form onSubmit={onAsk}>
-          <select value={mode} onChange={(e) => setMode(e.target.value)}>
-            <option value="cypher">Cypher</option>
-            <option value="vector">Vector</option>
-          </select>
-          <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask your graph…" />
-          <button className="btn" disabled={busy}>Ask</button>
-        </form>
+      )}
+
+      <div className="panel chat">
+        {demo ? (
+          <div className="cta">
+            <p>This is a sample graph. Connect an OpenAI key and Neo4j to upload your own PDF, watch its entities appear live and ask questions in natural language.</p>
+            <button className="btn" onClick={onConnectClick}>Connect your data</button>
+          </div>
+        ) : (
+          <>
+            <div className="messages">
+              {messages.length === 0 && <p className="hint">Upload any PDF, then ask about it.</p>}
+              {messages.map((m, i) => (
+                <div key={i} className={`msg ${m.role}`}>{m.text}{m.cypher && <pre>{m.cypher}</pre>}</div>
+              ))}
+              <div ref={chatEnd} />
+            </div>
+            <form onSubmit={onAsk}>
+              <select value={mode} onChange={(e) => setMode(e.target.value)}>
+                <option value="cypher">Cypher</option>
+                <option value="vector">Vector</option>
+              </select>
+              <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask your graph…" />
+              <button className="btn" disabled={busy}>Ask</button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

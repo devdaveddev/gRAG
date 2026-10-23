@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function Setup({ onConnect }) {
+export default function Setup({ onConnect, onClose }) {
   const [provider, setProvider] = useState("openai");
   const [f, setF] = useState({ openai_api_key: "", neo4j_uri: "", neo4j_user: "neo4j", neo4j_password: "" });
   const [error, setError] = useState("");
@@ -27,7 +27,8 @@ export default function Setup({ onConnect }) {
   return (
     <main className="setup">
       <form className="setup-card" onSubmit={submit} autoComplete="off">
-        <h1>Graph RAG</h1>
+        {onClose && <button type="button" className="x" onClick={onClose} aria-label="Close">×</button>}
+        <h1>Connect your data</h1>
         <p>Enter your credentials to begin. They are held in server memory for this session only and are never saved.</p>
 
         <div className="seg" role="group" aria-label="LLM provider">
