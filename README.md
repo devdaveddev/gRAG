@@ -19,9 +19,9 @@ cd frontend && npm install && npm run dev   # http://localhost:5173
 
 
 ## Deploy free on Streamlit Community Cloud
-1. Create a free Neo4j Aura instance (https://neo4j.com/cloud/aura-free/) and note the URI and password.
-2. On https://share.streamlit.io, deploy this repo with main file `streamlit_app.py`.
-3. In *Advanced settings → Secrets*, paste the contents of `.streamlit/secrets.toml.example` with your values.
+1. Create a free Neo4j Aura instance (https://neo4j.com/cloud/aura-free/).
+2. On https://share.streamlit.io, deploy this repo with main file `streamlit_app.py`. No secrets need configuring.
+3. On first load the app asks each visitor for their OpenAI API key and Neo4j credentials. They are held in that session's memory only.
 
 Local run: `pip install -r requirements.txt && streamlit run streamlit_app.py`.
-(Local Ollama models only work when self-hosting; Streamlit Cloud needs `OPENAI_API_KEY`.)
+Choose "Local (Ollama)" in the setup form to use local models instead of OpenAI (self-hosting only).

@@ -4,14 +4,6 @@ import sys
 import streamlit as st
 from pyvis.network import Network
 
-# Streamlit Cloud secrets -> env vars (core reads os.environ).
-try:
-    for k, v in st.secrets.items():
-        if isinstance(v, str):
-            os.environ.setdefault(k, v)
-except Exception:
-    pass
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 import core  # noqa: E402
 
@@ -41,6 +33,45 @@ def render_graph(data: dict) -> str:
     return net.generate_html()
 
 
+def setup_screen():
+    """Collect credentials. They live only in this browser session's st.session_state."""
+    st.title("Graph RAG")
+    st.write("Enter your credentials to begin. They are kept in memory for this session only and never stored.")
+    with st.form("setup"):
+        provider = st.radio("LLM provider", ["OpenAI", "Local (Ollama)"], horizontal=True)
+        key = st.text_input("OpenAI API key", type="password", placeholder="sk-...",
+                            help="Ignored for local Ollama.")
+        st.markdown("**Neo4j** (a free [Aura](https://neo4j.com/cloud/aura-free/) instance works)")
+        uri = st.text_input("URI", value=os.getenv("NEO4J_URI", ""), placeholder="neo4j+s://xxxx.databases.neo4j.io")
+        user = st.text_input("Username", value=os.getenv("NEO4J_USERNAME", "neo4j"))
+        pw = st.text_input("Password", type="password")
+        go = st.form_submit_button("Connect", type="primary")
+    if not go:
+        return
+    local = provider.startswith("Local")
+    if not uri or not pw or (not local and not key):
+        st.error("Please fill in all required fields.")
+        return
+    with st.spinner("Verifying credentials…"):
+        try:
+            rag = core.GraphRAG(core.Config(
+                neo4j_uri=uri.strip(), neo4j_user=user.strip(), neo4j_password=pw,
+                provider="ollama" if local else "openai", openai_api_key=key.strip(),
+            ))
+            rag.verify()
+        except Exception as e:
+            # Show only the exception type + message; never echo the inputs.
+            st.error(f"Could not connect: {type(e).__name__}: {str(e)[:300]}")
+            return
+    st.session_state["rag"] = rag
+    st.rerun()
+
+
+rag = st.session_state.get("rag")
+if rag is None:
+    setup_screen()
+    st.stop()
+
 st.title("Graph RAG")
 
 with st.sidebar:
@@ -49,19 +80,23 @@ with st.sidebar:
     if pdf and st.button("Extract graph", type="primary"):
         with st.spinner("Extracting entities and relationships…"):
             try:
-                r = core.ingest_pdf(pdf.getvalue(), pdf.name)
+                r = rag.ingest_pdf(pdf.getvalue(), pdf.name)
                 st.success(f"Added {r['nodes']} nodes, {r['relationships']} relationships")
             except Exception as e:
                 st.error(str(e))
     if st.button("Clear graph"):
-        core.clear_graph()
+        rag.clear_graph()
         st.session_state.pop("messages", None)
         st.rerun()
     st.divider()
+    if st.button("Disconnect"):
+        for k in ("rag", "messages"):
+            st.session_state.pop(k, None)
+        st.rerun()
     mode = st.radio("Query mode", ["cypher", "vector"], horizontal=True)
 
 try:
-    data = core.fetch_graph()
+    data = rag.fetch_graph()
 except Exception as e:
     st.error(f"Cannot reach Neo4j: {e}")
     st.stop()
@@ -86,7 +121,7 @@ if q := st.chat_input("e.g. Which doctors treat diabetes?"):
     with st.chat_message("assistant"):
         with st.spinner("Thinking…"):
             try:
-                r = core.ask(q, mode)
+                r = rag.ask(q, mode)
                 st.write(r["answer"])
                 if r["cypher"]:
                     st.code(r["cypher"], language="cypher")
