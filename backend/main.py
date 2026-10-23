@@ -16,6 +16,15 @@ SESSION_TTL = 60 * 60 * 2  # seconds of inactivity
 app = FastAPI(title="Graph RAG")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+@app.middleware("http")
+async def no_stale_html(request, call_next):
+    # Hashed /assets files can cache forever; the HTML shell must always revalidate so deploys show up.
+    resp = await call_next(request)
+    if not request.url.path.startswith(("/assets/", "/api/")):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 # Credentials live only here, in memory, keyed by an unguessable token. Never logged or persisted.
 _sessions: dict[str, tuple[core.GraphRAG, float]] = {}
 
