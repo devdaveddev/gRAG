@@ -1,11 +1,11 @@
 @import "./tokens.css";
 * { box-sizing: border-box; }
-body { margin: 0; font: var(--text-md) / 1.45 var(--font-sans); background: var(--color-bg); color: var(--color-text); overflow: hidden; }
+body { margin: 0; font: var(--text-md) / 1.5 var(--font-sans); -webkit-font-smoothing: antialiased; background: var(--color-bg); color: var(--color-text); overflow: hidden; }
 button, input, select { font: inherit; }
 :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 .app { position: relative; width: 100vw; height: 100vh; }
-.panel { position: absolute; background: var(--panel-bg); backdrop-filter: blur(var(--blur-glass));
+.panel { position: absolute; background: var(--panel-bg); 
   border: 1px solid var(--panel-border); border-radius: var(--panel-radius); padding: var(--panel-padding); box-shadow: var(--panel-shadow); }
 
 /* Top bar */
@@ -14,11 +14,10 @@ button, input, select { font: inherit; }
 .spacer { flex: 1; }
 .stats { font-size: var(--text-xs); color: var(--color-text-muted); }
 .chip { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); padding: 3px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-border-strong); }
-.chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--amber-400); animation: pulse 1.6s ease-in-out infinite; }
-.chip.live i { background: var(--green-400); }
-@keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
+.chip i { width: 6px; height: 6px; border-radius: 50%; background: #666; }
+.chip.live i { background: #8fbf8f; }
 .progress { position: absolute; left: 12px; right: 12px; bottom: 4px; height: 3px; background: transparent; border-radius: var(--radius-full); overflow: hidden; }
-.progress i { display: block; height: 100%; background: var(--color-primary); transition: width 400ms; }
+.progress i { display: block; height: 100%; background: var(--color-text-strong); transition: width 400ms; }
 
 /* Discovery feed */
 .feed { top: 76px; left: var(--space-3); width: 300px; max-height: calc(100vh - 220px); display: flex; flex-direction: column; padding: var(--space-3); }
@@ -56,8 +55,8 @@ button, input, select { font: inherit; }
 .cta p { margin: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
 .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-2); }
 .msg { padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); white-space: pre-wrap; max-width: 90%; }
-.msg.user { background: var(--bubble-user-bg); color: var(--btn-fg); align-self: flex-end; }
-.msg.bot { background: var(--bubble-bot-bg); align-self: flex-start; }
+.msg.user { background: var(--bubble-user-bg); color: var(--color-text-strong); align-self: flex-end; }
+.msg.bot { background: var(--bubble-bot-bg); align-self: flex-start; padding-left: 0; }
 .msg pre { margin: 6px 0 0; font: var(--text-xs) var(--font-mono); color: var(--color-text-muted); white-space: pre-wrap; }
 .hint, .status { font-size: var(--text-sm); color: var(--color-text-muted); margin: 0; }
 .status { display: flex; align-items: center; gap: var(--space-2); }
@@ -65,11 +64,14 @@ button, input, select { font: inherit; }
 .chat form input { flex: 1; min-width: 0; }
 
 input, select { background: var(--input-bg); color: inherit; border: 1px solid var(--input-border); border-radius: var(--input-radius); padding: var(--space-2) var(--space-3); }
-.btn { background: var(--btn-bg); color: var(--btn-fg); border: 0; border-radius: var(--btn-radius); padding: var(--btn-pad); cursor: pointer; transition: background var(--duration-fast); font-size: var(--text-sm); }
+.btn { background: var(--btn-bg); color: var(--btn-fg); border: 1px solid transparent; font-weight: 500; border-radius: var(--btn-radius); padding: var(--btn-pad); cursor: pointer; transition: background var(--duration-fast); font-size: var(--text-sm); }
 .btn:hover { background: var(--btn-bg-hover); }
-.btn.ghost { background: var(--btn-ghost-bg); } .btn.danger { background: var(--btn-danger-bg); }
+.btn.ghost { background: transparent; color: var(--color-text); border: 1px solid var(--color-border-strong); }
+.btn.ghost:hover { background: #151515; }
+.btn.danger { background: transparent; color: #e08a8a; border: 1px solid #4a2a2a; }
+.btn.danger:hover { background: #1a0e0e; }
 .btn.disabled, .btn:disabled { opacity: .5; pointer-events: none; }
-.spin { width: 12px; height: 12px; border: 2px solid var(--color-border-strong); border-top-color: var(--color-focus); border-radius: 50%; animation: s 1s linear infinite; flex: none; }
+.spin { width: 11px; height: 11px; border: 2px solid var(--color-border-strong); border-top-color: var(--color-text-strong); border-radius: 50%; animation: s 1s linear infinite; flex: none; }
 @keyframes s { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin, .chip i, .feed li { animation: none; } .btn { transition: none; } }
 
@@ -84,7 +86,7 @@ input, select { background: var(--input-bg); color: inherit; border: 1px solid v
 }
 
 /* Connect modal */
-.overlay { position: fixed; inset: 0; background: rgb(8 12 24 / .7); backdrop-filter: blur(4px); z-index: 10; overflow-y: auto; }
+.overlay { position: fixed; inset: 0; background: rgb(0 0 0 / .85); z-index: 10; overflow-y: auto; }
 .setup { min-height: 100vh; display: grid; place-items: center; padding: var(--space-4); }
 .setup-card { position: relative; width: 100%; max-width: 440px; background: var(--color-surface-solid); border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius); padding: var(--space-5); box-shadow: var(--panel-shadow); display: flex; flex-direction: column; gap: var(--space-3); }
@@ -94,6 +96,8 @@ input, select { background: var(--input-bg); color: inherit; border: 1px solid v
 .setup-card label input { color: var(--color-text); font-size: var(--text-md); }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1); background: var(--color-field); padding: var(--space-1); border-radius: var(--radius-md); }
 .seg button { border: 0; background: transparent; color: var(--color-text-muted); padding: var(--space-2); border-radius: var(--radius-sm); cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--color-primary); color: var(--btn-fg); }
+.seg button[aria-pressed="true"] { background: var(--color-primary); color: #000; }
 .error { color: var(--color-danger-text); font-size: var(--text-sm); }
 .setup-card .btn { padding: var(--space-3); font-weight: 600; }
+
+.topstatus { font-size: var(--text-xs); color: var(--color-text-muted); display: inline-flex; align-items: center; gap: 6px; }

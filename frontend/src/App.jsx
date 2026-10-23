@@ -97,7 +97,6 @@ function Workspace({ session, onLeave, onConnectClick }) {
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [feed, setFeed] = useState([]);
   const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("cypher");
@@ -120,24 +119,19 @@ function Workspace({ session, onLeave, onConnectClick }) {
     return res;
   }
 
-  const pushFeed = (item) => setFeed((f) => [{ ...item, k: Math.random() }, ...f].slice(0, 60));
-
   // Reveal one extraction result: nodes first, one at a time, then the edges between them.
   const reveal = useCallback((ev, myRun) => {
     queue.current = queue.current.then(async () => {
       if (run.current !== myRun) return;
-      if (ev.text) pushFeed({ kind: "read", text: ev.text });
       const pace = Math.max(70, Math.min(320, 2400 / Math.max(1, ev.nodes.length)));
       for (const n of ev.nodes) {
         if (run.current !== myRun) return;
         setData((p) => merge(p, { nodes: [n], links: [] }));
-        pushFeed({ kind: "node", label: n.label, text: n.name });
         await sleep(pace);
       }
       for (const l of ev.links) {
         if (run.current !== myRun) return;
         setData((p) => merge(p, { nodes: [], links: [l] }));
-        pushFeed({ kind: "link", text: `${l.source} → ${l.target}`, rel: l.type.replaceAll("_", " ").toLowerCase() });
         await sleep(Math.max(60, pace * 0.6));
       }
     });
@@ -265,7 +259,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
     if (!confirm("Delete the entire graph?")) return;
     await api("/graph", { method: "DELETE" });
     run.current++;
-    setData({ nodes: [], links: [] }); setFeed([]);
+    setData({ nodes: [], links: [] });
     setStatus("Graph cleared");
   }
 
@@ -282,7 +276,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
         onEngineStop={() => autoFit && fit()}
         linkCurvature={demo ? 0.08 : 0.14}
         linkColor={(l) => demo
-          ? hexA(token("--blue-400"), 0.07 + 0.6 * Math.pow(Math.max(0, Math.sin(Date.now() / 450 + l.phase)), 3))
+          ? hexA("#ffffff", 0.05 + 0.4 * Math.pow(Math.max(0, Math.sin(Date.now() / 450 + l.phase)), 3))
           : (!lit || (lit.has(endId(l.source)) && lit.has(endId(l.target))) ? token("--color-edge-strong") : token("--color-edge-dim"))}
         linkWidth={(l) => demo ? 1.2 : (lit && lit.has(endId(l.source)) && lit.has(endId(l.target)) ? 1.8 : 0.7)}
         linkDirectionalArrowLength={demo ? 0 : 4} linkDirectionalArrowRelPos={0.92}
@@ -303,16 +297,14 @@ function Workspace({ session, onLeave, onConnectClick }) {
             const blink = 0.12 + 0.55 * Math.pow(Math.max(0, Math.sin(Date.now() / 450 + n.phase + 1.2)), 3);
             ctx.beginPath(); ctx.arc(n.x, n.y, 5, 0, 2 * Math.PI);
             ctx.setLineDash([2 / scale, 2 / scale]); ctx.lineWidth = 1.2 / scale;
-            ctx.strokeStyle = hexA(token("--blue-400"), blink); ctx.stroke(); ctx.setLineDash([]);
+            ctx.strokeStyle = hexA("#ffffff", blink * 0.6); ctx.stroke(); ctx.setLineDash([]);
             return;
           }
           if (n.master) {
-            const t = Date.now() / 1000, pulse = 1 + 0.08 * Math.sin(t * 2), r = 15 * pulse, c = token("--blue-500");
-            const g = ctx.createRadialGradient(n.x, n.y, r * 0.4, n.x, n.y, r * 4.2);
-            g.addColorStop(0, hexA(c, 0.5)); g.addColorStop(1, hexA(c, 0));
-            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(n.x, n.y, r * 4.2, 0, 2 * Math.PI); ctx.fill();
+            const t = Date.now() / 1000, r = 11, c = token("--color-text-strong");
+            ctx.beginPath(); ctx.arc(n.x, n.y, r + 10 + 5 * Math.sin(t * 1.6), 0, 2 * Math.PI);
+            ctx.strokeStyle = hexA(c, 0.12); ctx.lineWidth = 1; ctx.stroke();
             ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill();
-            ctx.lineWidth = 2; ctx.strokeStyle = token("--color-text-strong"); ctx.stroke();
             ctx.textAlign = "center"; ctx.textBaseline = "top";
             ctx.font = `600 14px ${token("--font-sans") || "sans-serif"}`; ctx.fillStyle = token("--color-text-strong");
             ctx.fillText("Your data", n.x, n.y + r + 8);
@@ -326,10 +318,6 @@ function Workspace({ session, onLeave, onConnectClick }) {
           const dim = lit && !lit.has(n.id);
           const age = n.born ? Date.now() - n.born : Infinity;
           ctx.globalAlpha = dim ? 0.18 : 1;
-          // glow
-          const g = ctx.createRadialGradient(n.x, n.y, r * 0.5, n.x, n.y, r * 3);
-          g.addColorStop(0, c + "55"); g.addColorStop(1, c + "00");
-          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(n.x, n.y, r * 3, 0, 2 * Math.PI); ctx.fill();
           // birth: node scales in, ring expands outward
           const grow = Math.min(1, age / 450);
           ctx.beginPath(); ctx.arc(n.x, n.y, r * (0.4 + 0.6 * grow), 0, 2 * Math.PI);
@@ -356,6 +344,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
         <strong className="brand">Graph RAG</strong>
         <span className={`chip ${demo ? "demo" : "live"}`}><i />{demo ? "Waiting for data" : "Live"}</span>
         {!demo && <span className="stats">{data.nodes.length} nodes · {data.links.length} edges</span>}
+        {!demo && status && <span className="topstatus">{(busy || progress) && <span className="spin" />}{status}</span>}
         <span className="spacer" />
         {demo ? (
           <>
@@ -379,22 +368,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
         )}
       </header>
 
-      {!demo && <aside className="panel feed" aria-live="polite">
-        <h2>Live discoveries</h2>
-        {status && <p className="status">{(busy || progress) && <span className="spin" />}{status}</p>}
-        <ul>
-          {feed.length === 0 && <li className="hint">Waiting for entities…</li>}
-          {feed.map((f) => (
-            <li key={f.k} className={f.kind}>
-              {f.kind === "node" && <><i style={{ background: color(f.label) }} /><b>{f.text}</b><em>{f.label}</em></>}
-              {f.kind === "link" && <><span className="arrow">↳</span><span>{f.text}</span><em>{f.rel}</em></>}
-              {f.kind === "read" && <span className="read">“{f.text}”</span>}
-            </li>
-          ))}
-        </ul>
-      </aside>}
-
-      {!demo && legend.length > 0 && <div className="panel legend" role="group" aria-label="Filter by type">
+            {!demo && legend.length > 0 && <div className="panel legend" role="group" aria-label="Filter by type">
         {legend.map(([k, c]) => (
           <button key={k} className={hidden.has(k) ? "off" : ""} onClick={() => toggle(k)} aria-pressed={!hidden.has(k)}>
             <i style={{ background: color(k) }} />{k} <small>{c}</small>
