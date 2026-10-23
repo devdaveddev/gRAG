@@ -105,12 +105,13 @@ def get_graph(limit: int = 1000, x_session: str | None = Header(None)):
 
 class Query(BaseModel):
     question: str
-    mode: str = "cypher"  # "cypher" | "vector"
+    mode: str = "hybrid"  # "hybrid" | "cypher" | "vector"
+    history: list[dict] = []  # prior {role, text} turns, used for query rewriting
 
 
 @app.post("/api/query")
 def query(q: Query, x_session: str | None = Header(None)):
-    return rag(x_session).ask(q.question, q.mode)
+    return rag(x_session).ask(q.question, q.mode, q.history)
 
 
 @app.delete("/api/graph")

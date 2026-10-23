@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
+import { forceX, forceY } from "d3-force-3d";
 import Setup from "./Setup.jsx";
 
 // Canvas needs concrete colors, so resolve the CSS tokens once.
@@ -99,7 +100,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState("");
-  const [mode, setMode] = useState("cypher");
+  const [mode, setMode] = useState("hybrid");
   const [hover, setHover] = useState(null);
   const [selected, setSelected] = useState(null);
   const [hidden, setHidden] = useState(new Set());
@@ -158,8 +159,11 @@ function Workspace({ session, onLeave, onConnectClick }) {
   }, []);
 
   useEffect(() => {
-    fg.current?.d3Force("charge")?.strength(-170);
-    fg.current?.d3Force("link")?.distance(64);
+    fg.current?.d3Force("charge")?.strength(-160);
+    fg.current?.d3Force("link")?.distance(56);
+    // Weak gravity keeps disconnected clusters near each other instead of drifting off-screen.
+    fg.current?.d3Force("x", forceX(0).strength(0.03));
+    fg.current?.d3Force("y", forceY(0).strength(0.03));
   }, []);
   useEffect(() => chatEnd.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
 
@@ -178,8 +182,8 @@ function Workspace({ session, onLeave, onConnectClick }) {
 
   // Frame the whole graph, but never zoom in past a readable level when there are only a few nodes.
   const fit = useCallback(() => {
-    fg.current?.zoomToFit(600, 190);
-    setTimeout(() => { if (fg.current && fg.current.zoom() > 1.6) fg.current.zoom(1.6, 300); }, 650);
+    fg.current?.zoomToFit(600, 170);
+    setTimeout(() => { if (fg.current && fg.current.zoom() > 2.2) fg.current.zoom(2.2, 300); }, 650);
   }, []);
 
   // Keep the camera framing the graph as it grows, until the user takes over.
@@ -220,7 +224,8 @@ function Workspace({ session, onLeave, onConnectClick }) {
           setProgress({ done: ev.done, total: ev.total });
           setStatus(`Extracting… chunk ${ev.done}/${ev.total}`);
           reveal({ nodes: ev.nodes, links: ev.links, text: `Chunk ${ev.done}/${ev.total}` }, myRun);
-        } else if (ev.type === "indexing") setStatus("Building vector index…");
+        } else if (ev.type === "chunking") setStatus("Splitting into semantic chunks…");
+        else if (ev.type === "indexing") setStatus("Building search indexes…");
         else if (ev.type === "done") setStatus(`Done: ${ev.nodes} entities, ${ev.relationships} relationships`);
         else if (ev.type === "error") setStatus(`Error: ${ev.message}`);
       };
@@ -248,9 +253,9 @@ function Workspace({ session, onLeave, onConnectClick }) {
     try {
       const r = await (await api("/query", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, mode }),
+        body: JSON.stringify({ question: q, mode, history: messages.slice(-6).map((m) => ({ role: m.role, text: m.text })) }),
       })).json();
-      setMessages((m) => [...m, { role: "bot", text: r.answer, cypher: r.cypher }]);
+      setMessages((m) => [...m, { role: "bot", text: r.answer, cypher: r.cypher, trace: r.trace }]);
     } catch (err) { setMessages((m) => [...m, { role: "bot", text: `Error: ${err.message}` }]); }
     setBusy(false);
   }
@@ -329,7 +334,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
             ctx.globalAlpha = dim ? 0.18 : 1;
           }
           // label: hubs always, everyone when zoomed or highlighted
-          if (deg >= 3 || scale > 1.5 || (lit && lit.has(n.id)) || age < 2200) {
+          if (deg >= 3 || scale > 1.5 || data.nodes.length <= 60 || (lit && lit.has(n.id)) || age < 2200) {
             const fs = Math.max(3.2, 11 / scale);
             ctx.font = `${deg >= 3 ? 600 : 500} ${fs}px ${token("--font-sans") || "sans-serif"}`;
             ctx.textAlign = "center"; ctx.textBaseline = "top";
@@ -401,12 +406,25 @@ function Workspace({ session, onLeave, onConnectClick }) {
             <div className="messages">
               {messages.length === 0 && <p className="hint">Upload any PDF, then ask about it.</p>}
               {messages.map((m, i) => (
-                <div key={i} className={`msg ${m.role}`}>{m.text}{m.cypher && <pre>{m.cypher}</pre>}</div>
+                <div key={i} className={`msg ${m.role}`}>{m.text}{m.cypher && <pre>{m.cypher}</pre>}
+                  {m.trace && (
+                    <details className="trace">
+                      <summary>How it searched</summary>
+                      <p><b>Rewritten</b> {m.trace.rewrite.standalone}</p>
+                      {m.trace.rewrite.variants.length > 0 && <p><b>Also tried</b> {m.trace.rewrite.variants.join(" · ")}</p>}
+                      {m.trace.rewrite.keywords.length > 0 && <p><b>BM25 terms</b> {m.trace.rewrite.keywords.join(", ")}</p>}
+                      {m.trace.chunks.map((c, j) => (
+                        <p key={j} className="hit"><span className="badges">{c.found_by.map((f) => <i key={f}>{f}</i>)}<small>{c.score}</small></span>{c.text}</p>
+                      ))}
+                      {m.trace.facts.length > 0 && <p><b>Graph facts</b> {m.trace.facts.slice(0, 6).join("; ")}</p>}
+                    </details>
+                  )}</div>
               ))}
               <div ref={chatEnd} />
             </div>
             <form onSubmit={onAsk}>
               <select value={mode} onChange={(e) => setMode(e.target.value)}>
+                <option value="hybrid">Hybrid</option>
                 <option value="cypher">Cypher</option>
                 <option value="vector">Vector</option>
               </select>

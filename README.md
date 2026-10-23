@@ -8,6 +8,13 @@ Upload a PDF, extract it into a Neo4j knowledge graph (Patients, Doctors, Diseas
 - Semantic vector search over chunks (`Neo4jVector`)
 - Interactive force-directed graph, colored by entity type
 
+## How retrieval works
+- **Semantic chunking:** sentences are embedded and the text is cut only where the topic shifts (windowed similarity dips), then size-bounded. Hyphenation and hard line wraps from PDFs are repaired first.
+- **Query rewriting:** the LLM turns each question into a standalone query (using chat history), two paraphrases and BM25 keywords.
+- **Hybrid search:** every query variant runs against a Neo4j vector index (semantic) and a Neo4j full-text index (Lucene BM25); results are merged with reciprocal rank fusion.
+- **Graph context:** entities mentioned in the top chunks contribute their relationships as extra facts.
+- Answers cite passages, and the UI shows how each answer was found ("How it searched"). Cypher and Vector-only modes remain available.
+
 ## Run locally
 ```bash
 python -m venv .venv && source .venv/bin/activate

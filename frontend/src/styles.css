@@ -101,3 +101,13 @@ input, select { background: var(--input-bg); color: inherit; border: 1px solid v
 .setup-card .btn { padding: var(--space-3); font-weight: 600; }
 
 .topstatus { font-size: var(--text-xs); color: var(--color-text-muted); display: inline-flex; align-items: center; gap: 6px; }
+
+.trace { margin-top: 8px; font-size: var(--text-xs); color: var(--color-text-muted); }
+.trace summary { cursor: pointer; color: var(--color-text); }
+.trace p { margin: 6px 0 0; line-height: 1.4; }
+.trace b { color: var(--color-text); font-weight: 500; margin-right: 4px; }
+.trace .hit { border-left: 2px solid var(--color-border-strong); padding-left: 8px; }
+.trace .badges { display: inline-flex; gap: 4px; margin-right: 6px; align-items: center; }
+.trace .badges i { font-style: normal; border: 1px solid var(--color-border-strong); border-radius: 4px; padding: 0 5px; color: var(--color-text); }
+.trace .badges small { color: var(--color-text-muted); }
+.chat .messages { min-height: 0; }
