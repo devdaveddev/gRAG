@@ -9,7 +9,7 @@ button, input, select { font: inherit; }
   border: 1px solid var(--panel-border); border-radius: var(--panel-radius); padding: var(--panel-padding); box-shadow: var(--panel-shadow); }
 
 /* Top bar */
-.topbar { top: var(--space-3); left: var(--space-3); right: var(--space-3); display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); flex-wrap: wrap; }
+.topbar { background: none; border: 0; box-shadow: none; top: var(--space-3); left: var(--space-3); right: var(--space-3); display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); flex-wrap: wrap; }
 .brand { color: var(--color-text-strong); font-size: var(--text-lg); margin-right: var(--space-1); }
 .spacer { flex: 1; }
 .stats { font-size: var(--text-xs); color: var(--color-text-muted); }
