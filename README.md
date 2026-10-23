@@ -1,4 +1,4 @@
-# Graph RAG – Realtime Knowledge Graph from PDFs
+# gRAG – Realtime Knowledge Graph from PDFs
 
 Upload a PDF, extract it into a Neo4j knowledge graph (Patients, Doctors, Diseases, …), and query it in natural language with OpenAI + LangChain. The React UI shows the graph full-screen with floating upload and chat panels.
 
@@ -25,7 +25,7 @@ The `Dockerfile` builds the React UI and serves everything from one FastAPI cont
 **Hugging Face Spaces (free, HTTPS):** create a Space with SDK *Docker*, add this to the top of its `README.md`:
 ```
 ---
-title: Graph RAG
+title: gRAG
 sdk: docker
 app_port: 7860
 ---

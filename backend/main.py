@@ -13,7 +13,7 @@ import core
 
 SESSION_TTL = 60 * 60 * 2  # seconds of inactivity
 
-app = FastAPI(title="Graph RAG")
+app = FastAPI(title="gRAG")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 @app.middleware("http")

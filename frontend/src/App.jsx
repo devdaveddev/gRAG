@@ -341,7 +341,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
       />
 
       <header className="panel topbar">
-        <strong className="brand">Graph RAG</strong>
+        <strong className="brand">gRAG</strong>
         <span className={`chip ${demo ? "demo" : "live"}`}><i />{demo ? "Waiting for data" : "Live"}</span>
         {!demo && <span className="stats">{data.nodes.length} nodes · {data.links.length} edges</span>}
         {!demo && status && <span className="topstatus">{(busy || progress) && <span className="spin" />}{status}</span>}
