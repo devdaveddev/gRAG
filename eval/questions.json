@@ -1,0 +1,202 @@
+[
+ {
+  "doc": "Apple Inc.",
+  "anchor": "Apple Computer, Inc. was incorporated in Cupertino, California, on January 3, 1977, without Wayne, who had left and sold his share of the company back to Jobs and Wozniak for $800 (equivalent to $4,530 in 2025) twelve days after its founding.",
+  "question": "When did Apple Computer, Inc. officially found and who was involved in the initial sale of shares?"
+ },
+ {
+  "doc": "Apple Inc.",
+  "anchor": "Apple's product lineup includes portable and home hardware like the iPhone, iPad, Mac, Apple Watch, and AirPods; several in-house operating systems such as iOS, iPadOS, and macOS; and various software and services including Apple Pay and iCloud, as well as multimedia streaming services like Apple Music and Apple TV.",
+  "question": "What does Apple encompass in its product lineup, software, and services?"
+ },
+ {
+  "doc": "Apple Inc.",
+  "anchor": "Between September 1977 and September 1980, annual sales increased from $775,000 to 118 million, an average annual growth rate of 533%.",
+  "question": "What was Apple's cumulative sales growth between 1977 and 1980?"
+ },
+ {
+  "doc": "Apple Inc.",
+  "anchor": "In November and December 1979, Apple employees, including Jobs and Jef Raskin, visited Xerox PARC twice as part of a technology exchange negotiated by Jobs, in which Xerox was granted the right to purchase $1 million of Apple's pre-IPO stock.",
+  "question": "What role did Jobs play in facilitating the technology exchange between Apple and Xerox PARC?"
+ },
+ {
+  "doc": "Apple Inc.",
+  "anchor": "Founded in 1976 as Apple Computer Company by Steve Jobs, Steve Wozniak and Ronald Wayne, the company was incorporated by Jobs and Wozniak as Apple Computer, Inc. the following year.",
+  "question": "When was Apple founded and who were its initial founders?"
+ },
+ {
+  "doc": "Microsoft",
+  "anchor": "Founded in 1975 by Bill Gates and Paul Allen to market BASIC interpreters for the Altair 8800, Microsoft rose to dominate the PC operating system market with MS-DOS in the mid-1980s, followed by Windows.",
+  "question": "When did Microsoft begin its operations?"
+ },
+ {
+  "doc": "Microsoft",
+  "anchor": "On July 27, 1994, the Department of Justice's Antitrust Division filed a competitive impact statement stating that since 1988, Microsoft had increasingly induced OEMs to pay royalties under a per-processor license for microprocessors in their computers regardless of whether a Microsoft product was used.",
+  "question": "What actions did Microsoft take regarding royalties for microprocessors in its products?"
+ },
+ {
+  "doc": "Microsoft",
+  "anchor": "For this deal, Microsoft purchased a CP/M clone called 86-DOS from Seattle Computer Products which it branded as MS-DOS, although IBM rebranded it to IBM PC DOS.",
+  "question": "What operating system did Microsoft acquire from Seattle Computer Products?"
+ },
+ {
+  "doc": "Microsoft",
+  "anchor": "The company's 1986 initial public offering and the subsequent rise in its share price created three billionaires and an estimated 12,000 millionaires among Microsoft employees.",
+  "question": "How many individuals did Microsoft employees include among those who became billionaires or millionaires due to the company's initial public offering?"
+ },
+ {
+  "doc": "Microsoft",
+  "anchor": "The January 1975 issue of Popular Electronics featured Micro Instrumentation and Telemetry Systems's (MITS) Altair 8800 microcomputer, which inspired Allen to suggest that they could program a BASIC interpreter for the device.",
+  "question": "When did Microsoft's founder propose creating a BASIC interpreter for an early microcomputer?"
+ },
+ {
+  "doc": "Google",
+  "anchor": "Together, they own about 14% of its publicly listed shares and control 56% of its stockholder voting power through super-voting stock.",
+  "question": "What percentage of Google's publicly traded shares do these entities collectively hold?"
+ },
+ {
+  "doc": "Google",
+  "anchor": "Page and Brin published their research, along with Rajeev Motwani and Terry Winograd, as the PageRank algorithm and Stanford owned the patent.",
+  "question": "Who were the key contributors to the development of Google's PageRank algorithm?"
+ },
+ {
+  "doc": "Google",
+  "anchor": "In June 2000, it was announced that Google would become the default search engine provider for Yahoo!, one of the most popular websites at the time, replacing Inktomi.",
+  "question": "When did Google decide to serve as Yahoo!'s default search engine?"
+ },
+ {
+  "doc": "Google",
+  "anchor": "Google (officially known as Google LLC) ( , GOO-g\u0259l) is an American multinational technology corporation focused on information technology, online advertising, search engine technology, email, cloud computing, software, quantum computing, e-commerce, consumer electronics, and artificial intelligence (AI).",
+  "question": "What sectors does Google operate in?"
+ },
+ {
+  "doc": "Google",
+  "anchor": "Eventually, they changed the name to Google; the name of the search engine was a misspelling of the word googol, a very large number written 10100 (1 followed by 100 zeros), picked to signify that the search engine was intended to search a large number of websites.",
+  "question": "What did Google originally intend to represent with its choice of name?"
+ },
+ {
+  "doc": "Nvidia",
+  "anchor": "During the late 1990s, Nvidia was one of 70 startup companies pursuing the idea that graphics acceleration for video games was the path to the future.",
+  "question": "What role did Nvidia play in a group of startups aiming at gaming graphics technology?"
+ },
+ {
+  "doc": "Nvidia",
+  "anchor": "Originally focused on GPUs for video games, Nvidia broadened their usage into other markets, including AI, professional visualization, and supercomputing.",
+  "question": "What sectors did Nvidia expand its GPU usage to beyond video games?"
+ },
+ {
+  "doc": "Nvidia",
+  "anchor": "The three co-founders discussed a vision of the future for gaming and multimedia markets, which was so compelling that Huang decided to leave LSI and become the chief executive officer of their new startup.",
+  "question": "Who ultimately took over as CEO for Nvidia's new venture?"
+ },
+ {
+  "doc": "Nvidia",
+  "anchor": "As a result, as of 2025, Nvidia controlled more than 80% of the market for GPUs used in training and deploying AI models, and provided chips for over 75% of the world's TOP500 supercomputers.",
+  "question": "What percentage of AI model training and deployment GPU market did Nvidia dominate by 2025?"
+ },
+ {
+  "doc": "Nvidia",
+  "anchor": "Founded in 1993 by Jensen Huang, Chris Malachowsky, and Curtis Priem, Nvidia has been described as a Big Tech company and is among the largest companies by market capitalization.",
+  "question": "What significant years mark Nvidia's establishment?"
+ },
+ {
+  "doc": "OpenAI",
+  "anchor": "In December 2016, OpenAI released \"Universe\", a software platform for measuring and training an AI's general intelligence across the world's supply of games, websites, and other applications.",
+  "question": "What did OpenAI introduce in December 2016 to facilitate AI's intelligence across various platforms?"
+ },
+ {
+  "doc": "OpenAI",
+  "anchor": "In March 2026, OpenAI closed a funding round with a post-money valuation of US$852 billion, making it one of the most valuable AI pure play companies in the world, rivalled only by Anthropic.",
+  "question": "What was OpenAI's post-money valuation in March 2026?"
+ },
+ {
+  "doc": "OpenAI",
+  "anchor": "OpenAI has faced multiple lawsuits for alleged deaths linked to its chatbots and copyright infringement against authors and media companies.",
+  "question": "What legal issues has OpenAI encountered due to its chatbots?"
+ },
+ {
+  "doc": "OpenAI",
+  "anchor": "The holding company OpenAI LP was owned by the nonprofit OpenAI, Inc., OpenAI employees, and investors, whereas OpenAI Global, LLC, was owned by OpenAI LP and Microsoft, the latter of which had a minority non-voting stake.",
+  "question": "What entities owned OpenAI Global, LLC?"
+ },
+ {
+  "doc": "OpenAI",
+  "anchor": "It develops \"frontier\" generative AI models, particularly its generative pre-trained transformer (GPT) series of large language models.",
+  "question": "What company develops the GPT series of large language models?"
+ },
+ {
+  "doc": "Tesla, Inc.",
+  "anchor": "Tesla entered the energy storage market, unveiling its Tesla Powerwall (home) and Tesla Powerpack (business) battery packs in April 2015.",
+  "question": "When did Tesla introduce its Powerwall and Powerpack products?"
+ },
+ {
+  "doc": "Tesla, Inc.",
+  "anchor": "In January 2010, Tesla received a $465 million government loan from the Department of Energy's Loan Program Office (LPO), for U.S.-made advanced clean energy technology commercialization and manufacturing.",
+  "question": "How much did Tesla receive in a government loan for its advanced clean energy technology projects?"
+ },
+ {
+  "doc": "Tesla, Inc.",
+  "anchor": "In February 2004, Elon Musk led Tesla's first funding round and became the company's chairman, subsequently claiming to be a co-founder; in 2008, he was named chief executive officer.",
+  "question": "Who held leadership positions at Tesla after its founding?"
+ },
+ {
+  "doc": "Tesla, Inc.",
+  "anchor": "A lawsuit settlement agreed to by Eberhard and Tesla in September 2009 allows all five \u2013 Eberhard, Tarpenning, Wright, Musk, and Straubel \u2013 to call themselves co-founders.",
+  "question": "Who were considered co-founders under the settlement agreed upon by Tesla and Eberhard in September 2009?"
+ },
+ {
+  "doc": "Tesla, Inc.",
+  "anchor": "Headquartered in Austin, Texas, it designs, manufactures, and sells battery electric vehicles (BEVs), stationary battery energy storage devices from home to grid-scale, solar panels and solar shingles, and related products and services.",
+  "question": "What does Tesla produce?"
+ },
+ {
+  "doc": "Amazon (company)",
+  "anchor": "In 2001, Amazon entered into a similar agreement with Borders, under which Amazon would comanage Borders.com as a co-branded service.",
+  "question": "When did Amazon collaborate with Borders on managing their online platform?"
+ },
+ {
+  "doc": "Amazon (company)",
+  "anchor": "Amazon distributes downloadable and streaming content through its Amazon Prime Video, MGM+, Amazon Music, Twitch, Audible, and Wondery units through its Entertainment division.",
+  "question": "What entertainment platforms does Amazon operate under its Entertainment division?"
+ },
+ {
+  "doc": "Amazon (company)",
+  "anchor": "Amazon has been criticized for its alleged business practices, including surveillance partnerships, poor working conditions, anti-union efforts, environmental harm, anticompetitive behavior, censorship controversies, and exploitative treatment of small businesses and suppliers.",
+  "question": "What types of criticisms has Amazon faced for its business practices?"
+ },
+ {
+  "doc": "Amazon (company)",
+  "anchor": "In 1999, it expanded to sell more products, including music, video games, consumer electronics, home improvement items, software, games, and toys.",
+  "question": "What new categories did Amazon include in its expanded product line in 1999?"
+ },
+ {
+  "doc": "Amazon (company)",
+  "anchor": "The company has multiple subsidiaries, including Amazon Web Services (AWS), which provides cloud computing; Zoox, a self-driving car division; satellite Internet provider Kuiper Systems; and Amazon Lab126, a computer hardware R&D provider.",
+  "question": "What does Amazon operate through its subsidiaries besides AWS?"
+ },
+ {
+  "doc": "Meta Platforms",
+  "anchor": "Libra was renamed Diem, before being shut down and sold in January 2022 after backlash from Swiss government regulators and the public.",
+  "question": "What significant changes occurred to Meta's cryptocurrency project Diem prior to its cancellation?"
+ },
+ {
+  "doc": "Meta Platforms",
+  "anchor": "The stock struggled to stay above the IPO price for most of the day, forcing underwriters to buy back shares to support the price.",
+  "question": "What actions did Meta take when the stock's price dropped below its IPO level?"
+ },
+ {
+  "doc": "Meta Platforms",
+  "anchor": "Depending on when it would receive approval from the Swiss Financial Market Supervisory authority to operate as a payments service, the Libra Association had planned to launch a limited format cryptocurrency in 2021.",
+  "question": "When could Meta's Libra Association have initiated a limited launch of its cryptocurrency in 2021?"
+ },
+ {
+  "doc": "Meta Platforms",
+  "anchor": "Underwriters valued the shares at $38 each, valuing the company at $104 billion, the largest valuation yet for a newly public company.",
+  "question": "What was the total valuation assigned to Meta upon its initial public offering?"
+ },
+ {
+  "doc": "Meta Platforms",
+  "anchor": "In 2021, it rebranded as Meta Platforms, Inc. to reflect a strategic shift toward developing the metaverse\u2014an interconnected digital ecosystem spanning virtual and augmented reality technologies.",
+  "question": "What did Meta Platforms, Inc. rename itself to signify its focus on the metaverse?"
+ }
+]

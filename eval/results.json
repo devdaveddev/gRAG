@@ -1,0 +1,122 @@
+{
+ "fixed-1500": {
+  "chunks": 54,
+  "mean_chars": 1018,
+  "single-turn/vector": {
+   "n": 40,
+   "recall@1": 0.725,
+   "recall@3": 0.925,
+   "recall@5": 1.0,
+   "mrr@5": 0.8229166666666666
+  },
+  "single-turn/bm25": {
+   "n": 40,
+   "recall@1": 0.675,
+   "recall@3": 0.775,
+   "recall@5": 0.875,
+   "mrr@5": 0.7416666666666667
+  },
+  "single-turn/hybrid": {
+   "n": 40,
+   "recall@1": 0.75,
+   "recall@3": 0.9,
+   "recall@5": 0.925,
+   "mrr@5": 0.8145833333333334
+  },
+  "single-turn/hybrid+rewrite": {
+   "n": 40,
+   "recall@1": 0.8,
+   "recall@3": 0.925,
+   "recall@5": 1.0,
+   "mrr@5": 0.8675
+  },
+  "conversational/vector": {
+   "n": 39,
+   "recall@1": 0.41025641025641024,
+   "recall@3": 0.6923076923076923,
+   "recall@5": 0.717948717948718,
+   "mrr@5": 0.5405982905982906
+  },
+  "conversational/bm25": {
+   "n": 39,
+   "recall@1": 0.6153846153846154,
+   "recall@3": 0.7435897435897436,
+   "recall@5": 0.7692307692307693,
+   "mrr@5": 0.6816239316239316
+  },
+  "conversational/hybrid": {
+   "n": 39,
+   "recall@1": 0.5897435897435898,
+   "recall@3": 0.7435897435897436,
+   "recall@5": 0.7692307692307693,
+   "mrr@5": 0.6632478632478632
+  },
+  "conversational/hybrid+rewrite": {
+   "n": 39,
+   "recall@1": 0.7435897435897436,
+   "recall@3": 0.9487179487179487,
+   "recall@5": 1.0,
+   "mrr@5": 0.847863247863248
+  }
+ },
+ "semantic": {
+  "chunks": 58,
+  "mean_chars": 959,
+  "single-turn/vector": {
+   "n": 40,
+   "recall@1": 0.625,
+   "recall@3": 0.925,
+   "recall@5": 0.95,
+   "mrr@5": 0.7729166666666667
+  },
+  "single-turn/bm25": {
+   "n": 40,
+   "recall@1": 0.6,
+   "recall@3": 0.75,
+   "recall@5": 0.85,
+   "mrr@5": 0.6945833333333333
+  },
+  "single-turn/hybrid": {
+   "n": 40,
+   "recall@1": 0.65,
+   "recall@3": 0.825,
+   "recall@5": 0.85,
+   "mrr@5": 0.7395833333333333
+  },
+  "single-turn/hybrid+rewrite": {
+   "n": 40,
+   "recall@1": 0.725,
+   "recall@3": 0.925,
+   "recall@5": 0.975,
+   "mrr@5": 0.8208333333333334
+  },
+  "conversational/vector": {
+   "n": 39,
+   "recall@1": 0.4358974358974359,
+   "recall@3": 0.7435897435897436,
+   "recall@5": 0.7948717948717948,
+   "mrr@5": 0.5897435897435898
+  },
+  "conversational/bm25": {
+   "n": 39,
+   "recall@1": 0.5128205128205128,
+   "recall@3": 0.6923076923076923,
+   "recall@5": 0.7435897435897436,
+   "mrr@5": 0.6055555555555555
+  },
+  "conversational/hybrid": {
+   "n": 39,
+   "recall@1": 0.6410256410256411,
+   "recall@3": 0.717948717948718,
+   "recall@5": 0.7692307692307693,
+   "mrr@5": 0.6867521367521368
+  },
+  "conversational/hybrid+rewrite": {
+   "n": 39,
+   "recall@1": 0.6923076923076923,
+   "recall@3": 0.8974358974358975,
+   "recall@5": 0.9743589743589743,
+   "mrr@5": 0.8141025641025641
+  }
+ }
+}

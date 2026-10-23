@@ -15,6 +15,9 @@ Upload a PDF, extract it into a Neo4j knowledge graph (Patients, Doctors, Diseas
 - **Graph context:** entities mentioned in the top chunks contribute their relationships as extra facts.
 - Answers cite passages, and the UI shows how each answer was found ("How it searched"). Cypher and Vector-only modes remain available.
 
+## Evaluation
+Hybrid search with query rewriting reached 97-100% recall@5 on follow-up questions (vs 72-80% for vector-only) on an 8-article test set. Full tables, method and caveats: [eval/RESULTS.md](eval/RESULTS.md).
+
 ## Run locally
 ```bash
 python -m venv .venv && source .venv/bin/activate
