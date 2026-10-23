@@ -39,6 +39,11 @@ class Connect(BaseModel):
     neo4j_password: str = Field(repr=False)
 
 
+@app.get("/api/health")
+def health():
+    return {"ok": True}
+
+
 @app.post("/api/connect")
 def connect(c: Connect):
     if c.provider not in ("openai", "ollama"):

@@ -32,6 +32,8 @@ app_port: 7860
 ```
 then push this repo to the Space. Use a free [Neo4j Aura](https://neo4j.com/cloud/aura-free/) instance; users enter their keys in the setup screen.
 
+**Render:** push to GitHub, then in Render choose *New → Blueprint* and select this repo; `render.yaml` sets up a Docker web service. Add no env vars; users enter keys in the app.
+
 Any container host works too (Fly.io, Railway, Cloud Run): build the Dockerfile and expose `$PORT`.
 
 ## Design system
