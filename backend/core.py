@@ -11,7 +11,12 @@ from pypdf import PdfReader
 
 load_dotenv()
 
-ALLOWED_NODES = ["Patient", "Doctor", "Disease", "Symptom", "Treatment", "Medication", "Hospital"]
+# Domain-agnostic: the model chooses entity types from the document itself.
+EXTRACTION_HINT = (
+    "Use short, singular, capitalised node types such as Person, Organization, Location, Event, "
+    "Concept, Product, Technology, Document, Disease, Drug. Reuse the same type for similar entities "
+    "and use the entity's full, canonical name as its id."
+)
 VECTOR_INDEX = "chunk_embeddings"
 
 
@@ -76,43 +81,50 @@ class GraphRAG:
             embedding_node_property="embedding",
         )
 
-    def ingest_pdf(self, data: bytes, filename: str) -> dict:
+    def ingest_pdf_stream(self, data: bytes, filename: str):
+        """Yield progress events as each chunk is extracted and written, so the UI can update live."""
         reader = PdfReader(io.BytesIO(data))
         text = "\n".join(page.extract_text() or "" for page in reader.pages)
         if not text.strip():
             raise ValueError("No extractable text in PDF")
 
         chunks = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150).split_text(text)
-        docs = [Document(page_content=c, metadata={"source": filename}) for c in chunks]
-
         transformer = LLMGraphTransformer(
             llm=self.llm,
-            allowed_nodes=ALLOWED_NODES,
             node_properties=["description"] if not self.local else False,
             ignore_tool_usage=self.local,
+            additional_instructions=EXTRACTION_HINT,
         )
-        graph_docs = transformer.convert_to_graph_documents(docs)
-        self.graph.add_graph_documents(graph_docs, baseEntityLabel=True, include_source=True)
+        total_nodes = total_rels = 0
+        yield {"type": "start", "total": len(chunks)}
+        for i, chunk in enumerate(chunks, 1):
+            doc = Document(page_content=chunk, metadata={"source": filename})
+            graph_docs = transformer.convert_to_graph_documents([doc])
+            self.graph.add_graph_documents(graph_docs, baseEntityLabel=True, include_source=True)
+            nodes = [{"id": n.id, "name": n.id, "label": n.type} for gd in graph_docs for n in gd.nodes]
+            links = [
+                {"source": r.source.id, "target": r.target.id, "type": r.type}
+                for gd in graph_docs for r in gd.relationships
+            ]
+            total_nodes += len(nodes)
+            total_rels += len(links)
+            yield {"type": "chunk", "done": i, "total": len(chunks), "nodes": nodes, "links": links}
 
+        yield {"type": "indexing"}
         # Embed the source chunks for semantic search.
         self.graph.query("MATCH (d:Document) WHERE d.text IS NOT NULL SET d:Chunk")
-        self._vector_store()  # builds index + embeddings for Chunk.text
+        self._vector_store()
         self.graph.refresh_schema()
+        yield {"type": "done", "chunks": len(chunks), "nodes": total_nodes, "relationships": total_rels}
 
-        return {
-            "chunks": len(docs),
-            "nodes": sum(len(gd.nodes) for gd in graph_docs),
-            "relationships": sum(len(gd.relationships) for gd in graph_docs),
-        }
-
-    def fetch_graph(self, limit: int = 300) -> dict:
+    def fetch_graph(self, limit: int = 1000) -> dict:
         rows = self.graph.query(
             """
             MATCH (n:__Entity__)
             WITH n LIMIT $limit
             OPTIONAL MATCH (n)-[r]->(m:__Entity__)
-            RETURN elementId(n) AS nid, labels(n) AS nlabels, n.id AS nname,
-                   elementId(m) AS mid, labels(m) AS mlabels, m.id AS mname, type(r) AS rtype
+            RETURN n.id AS nid, labels(n) AS nlabels, n.id AS nname,
+                   m.id AS mid, labels(m) AS mlabels, m.id AS mname, type(r) AS rtype
             """,
             {"limit": limit},
         )

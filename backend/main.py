@@ -1,9 +1,11 @@
+import json
 import os
 import secrets
 import time
 
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -69,14 +71,21 @@ async def upload(file: UploadFile = File(...), x_session: str | None = Header(No
     r = rag(x_session)
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are supported")
-    try:
-        return r.ingest_pdf(await file.read(), file.filename)
-    except ValueError as e:
-        raise HTTPException(422, str(e))
+    data = await file.read()
+
+    def events():
+        # NDJSON: one event per line, flushed as each chunk lands in Neo4j.
+        try:
+            for ev in r.ingest_pdf_stream(data, file.filename):
+                yield json.dumps(ev) + "\n"
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": f"{type(e).__name__}: {str(e)[:200]}"}) + "\n"
+
+    return StreamingResponse(events(), media_type="application/x-ndjson")
 
 
 @app.get("/api/graph")
-def get_graph(limit: int = 300, x_session: str | None = Header(None)):
+def get_graph(limit: int = 1000, x_session: str | None = Header(None)):
     return rag(x_session).fetch_graph(limit)
 
 

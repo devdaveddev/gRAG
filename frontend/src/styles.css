@@ -46,3 +46,7 @@ input, select { background: var(--input-bg); color: inherit; border: 1px solid v
 .seg button[aria-pressed="true"] { background: var(--color-primary); color: var(--btn-fg); }
 .error { color: var(--color-danger-text); font-size: var(--text-sm); }
 .setup-card .btn { padding: var(--space-3); font-weight: 600; }
+
+.progress { width: 100%; height: 4px; background: var(--color-field); border-radius: var(--radius-full); overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--color-primary); transition: width var(--duration-fast); }
+.stats { width: 100%; margin: 0; font-size: var(--text-xs); color: var(--color-text-muted); }

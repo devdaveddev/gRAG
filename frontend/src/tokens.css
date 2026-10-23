@@ -33,10 +33,11 @@
   --color-danger-text: var(--red-400);
   --color-edge: rgb(148 163 184 / .35);
 
-  /* Entity type palette (graph + legend) */
-  --entity-patient: var(--blue-400); --entity-doctor: var(--green-400); --entity-disease: var(--red-400);
-  --entity-symptom: var(--amber-400); --entity-treatment: var(--violet-400); --entity-medication: var(--pink-400);
-  --entity-hospital: var(--cyan-400); --entity-default: var(--slate-400);
+  /* Categorical palette for entity types (assigned per type by hash) */
+  --cat-1: var(--blue-400); --cat-2: var(--green-400); --cat-3: var(--red-400); --cat-4: var(--amber-400);
+  --cat-5: var(--violet-400); --cat-6: var(--pink-400); --cat-7: var(--cyan-400); --cat-8: #fb923c;
+  --cat-9: #a3e635; --cat-10: #e879f9; --cat-11: #2dd4bf; --cat-12: #f5d0a9;
+  --entity-default: var(--slate-400);
 
   /* ── Component ── */
   --panel-bg: var(--color-surface); --panel-border: var(--color-border); --panel-radius: var(--radius-lg);
