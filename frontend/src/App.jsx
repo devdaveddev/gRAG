@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import Setup from "./Setup.jsx";
-import { DEMO_CHUNKS, toEvent } from "./demo.js";
 
 // Canvas needs concrete colors, so resolve the CSS tokens once.
 const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -46,6 +45,34 @@ function merge(prev, delta) {
   return { nodes: [...nodes.values()], links: [...links.values()] };
 }
 
+const hexA = (hex, a) => hex + Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, "0");
+
+// Idle state: one master node drifting, with faint ghost nodes orbiting it on blinking edges.
+const GHOSTS = 8;
+function idleGraph() {
+  const nodes = [{ id: "you", name: "Your data", label: "Master", master: true }];
+  const links = [];
+  for (let i = 0; i < GHOSTS; i++) {
+    nodes.push({ id: `g${i}`, name: "", label: "Ghost", ghost: true, i,
+      radius: 85 + (i % 3) * 38 + Math.random() * 14, speed: (0.12 + Math.random() * 0.14) * (i % 2 ? 1 : -1), phase: Math.random() * 6.28 });
+    links.push({ source: "you", target: `g${i}`, type: "", phase: Math.random() * 6.28 });
+  }
+  stepIdle(nodes, 0);
+  return { nodes, links };
+}
+function stepIdle(nodes, t) {
+  const m = nodes.find((n) => n.master);
+  if (!m) return;
+  m.fx = 46 * Math.sin(t * 0.45); m.fy = 28 * Math.sin(t * 0.7 + 1);
+  m.x = m.fx; m.y = m.fy;
+  for (const n of nodes) {
+    if (!n.ghost) continue;
+    const a = n.phase + t * n.speed, r = n.radius + 8 * Math.sin(t * 0.6 + n.i);
+    n.fx = m.x + Math.cos(a) * r * 1.35; n.fy = m.y + Math.sin(a) * r * 0.8;
+    n.x = n.fx; n.y = n.fy;
+  }
+}
+
 export default function App() {
   const [session, setSession] = useState(() => sessionStorage.getItem("grag-session"));
   const [showSetup, setShowSetup] = useState(false);
@@ -65,7 +92,7 @@ export default function App() {
 
 function Workspace({ session, onLeave, onConnectClick }) {
   const demo = !session;
-  const [data, setData] = useState({ nodes: [], links: [] });
+  const [data, setData] = useState(() => (session ? { nodes: [], links: [] } : idleGraph()));
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(null);
@@ -77,12 +104,14 @@ function Workspace({ session, onLeave, onConnectClick }) {
   const [hover, setHover] = useState(null);
   const [selected, setSelected] = useState(null);
   const [hidden, setHidden] = useState(new Set());
-  const [autoFit, setAutoFit] = useState(true);
+  const [autoFit, setAutoFit] = useState(!!session);
   const chatEnd = useRef(null);
   const fg = useRef(null);
   const run = useRef(0);          // bumped to cancel a running playback
   const queue = useRef(Promise.resolve());
   const degRef = useRef(new Map());
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
   async function api(path, opts = {}) {
     const res = await fetch(`/api${path}`, { ...opts, headers: { ...opts.headers, "X-Session": session } });
@@ -115,21 +144,6 @@ function Workspace({ session, onLeave, onConnectClick }) {
     return queue.current;
   }, []);
 
-  const startDemo = useCallback(async () => {
-    const myRun = ++run.current;
-    queue.current = Promise.resolve();
-    setData({ nodes: [], links: [] });
-    setFeed([]); setSelected(null); setHidden(new Set()); setAutoFit(true);
-    setStatus("Demo: discovering entities from 6 sample paragraphs");
-    for (let i = 0; i < DEMO_CHUNKS.length; i++) {
-      if (run.current !== myRun) return;
-      setProgress({ done: i, total: DEMO_CHUNKS.length });
-      await reveal(toEvent(DEMO_CHUNKS[i]), myRun);
-      await sleep(500);
-    }
-    if (run.current === myRun) { setProgress(null); setStatus("Demo complete. Connect your own data to ask questions."); }
-  }, [reveal]);
-
   const loadGraph = useCallback(async () => {
     try {
       const g = await (await api("/graph")).json();
@@ -139,10 +153,14 @@ function Workspace({ session, onLeave, onConnectClick }) {
   }, []);
 
   useEffect(() => {
-    if (demo) startDemo(); else loadGraph();
+    let raf;
+    if (demo) {
+      const tick = () => { stepIdle(dataRef.current.nodes, performance.now() / 1000); raf = requestAnimationFrame(tick); };
+      raf = requestAnimationFrame(tick);
+    } else loadGraph();
     const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener("resize", onResize);
-    return () => { run.current++; window.removeEventListener("resize", onResize); };
+    return () => { run.current++; cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
   }, []);
 
   useEffect(() => {
@@ -259,14 +277,17 @@ function Workspace({ session, onLeave, onConnectClick }) {
       <ForceGraph2D
         ref={fg} width={size.w} height={size.h} graphData={visible}
         backgroundColor={token("--color-bg")}
-        cooldownTicks={120} d3VelocityDecay={0.28}
+        cooldownTicks={demo ? Infinity : 120} d3VelocityDecay={0.28} autoPauseRedraw={false}
+        enableZoomInteraction={!demo} enablePanInteraction={!demo} enableNodeDrag={!demo}
         onEngineStop={() => autoFit && fit()}
-        linkCurvature={0.14}
-        linkColor={(l) => (!lit || (lit.has(endId(l.source)) && lit.has(endId(l.target))) ? token("--color-edge-strong") : token("--color-edge-dim"))}
-        linkWidth={(l) => (lit && lit.has(endId(l.source)) && lit.has(endId(l.target)) ? 1.8 : 0.7)}
-        linkDirectionalArrowLength={4} linkDirectionalArrowRelPos={0.92}
-        linkDirectionalParticles={(l) => (l.born && Date.now() - l.born < 2600 ? 4 : 0)}
-        linkDirectionalParticleWidth={2.6} linkDirectionalParticleSpeed={0.012}
+        linkCurvature={demo ? 0.08 : 0.14}
+        linkColor={(l) => demo
+          ? hexA(token("--blue-400"), 0.07 + 0.6 * Math.pow(Math.max(0, Math.sin(Date.now() / 450 + l.phase)), 3))
+          : (!lit || (lit.has(endId(l.source)) && lit.has(endId(l.target))) ? token("--color-edge-strong") : token("--color-edge-dim"))}
+        linkWidth={(l) => demo ? 1.2 : (lit && lit.has(endId(l.source)) && lit.has(endId(l.target)) ? 1.8 : 0.7)}
+        linkDirectionalArrowLength={demo ? 0 : 4} linkDirectionalArrowRelPos={0.92}
+        linkDirectionalParticles={(l) => demo ? 1 : (l.born && Date.now() - l.born < 2600 ? 4 : 0)}
+        linkDirectionalParticleWidth={2.6} linkDirectionalParticleSpeed={demo ? 0.005 : 0.012}
         linkLabel={(l) => l.type.replaceAll("_", " ").toLowerCase()}
         onNodeHover={(n) => setHover(n ? n.id : null)}
         onNodeClick={(n) => { setSelected(n.id); setAutoFit(false); fg.current?.centerAt(n.x, n.y, 500); }}
@@ -277,6 +298,28 @@ function Workspace({ session, onLeave, onConnectClick }) {
         }}
         nodeCanvasObjectMode={() => "replace"}
         nodeCanvasObject={(n, ctx, scale) => {
+          if (!Number.isFinite(n.x) || !Number.isFinite(n.y)) return;
+          if (n.ghost) {
+            const blink = 0.12 + 0.55 * Math.pow(Math.max(0, Math.sin(Date.now() / 450 + n.phase + 1.2)), 3);
+            ctx.beginPath(); ctx.arc(n.x, n.y, 5, 0, 2 * Math.PI);
+            ctx.setLineDash([2 / scale, 2 / scale]); ctx.lineWidth = 1.2 / scale;
+            ctx.strokeStyle = hexA(token("--blue-400"), blink); ctx.stroke(); ctx.setLineDash([]);
+            return;
+          }
+          if (n.master) {
+            const t = Date.now() / 1000, pulse = 1 + 0.08 * Math.sin(t * 2), r = 15 * pulse, c = token("--blue-500");
+            const g = ctx.createRadialGradient(n.x, n.y, r * 0.4, n.x, n.y, r * 4.2);
+            g.addColorStop(0, hexA(c, 0.5)); g.addColorStop(1, hexA(c, 0));
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(n.x, n.y, r * 4.2, 0, 2 * Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill();
+            ctx.lineWidth = 2; ctx.strokeStyle = token("--color-text-strong"); ctx.stroke();
+            ctx.textAlign = "center"; ctx.textBaseline = "top";
+            ctx.font = `600 14px ${token("--font-sans") || "sans-serif"}`; ctx.fillStyle = token("--color-text-strong");
+            ctx.fillText("Your data", n.x, n.y + r + 8);
+            ctx.font = `12px ${token("--font-sans") || "sans-serif"}`; ctx.fillStyle = token("--color-text-muted");
+            ctx.fillText("could be next", n.x, n.y + r + 26);
+            return;
+          }
           const deg = degRef.current.get(n.id) || 0;
           const r = 4 + Math.sqrt(deg) * 2.4;
           const c = color(n.label);
@@ -311,12 +354,11 @@ function Workspace({ session, onLeave, onConnectClick }) {
 
       <header className="panel topbar">
         <strong className="brand">Graph RAG</strong>
-        <span className={`chip ${demo ? "demo" : "live"}`}><i />{demo ? "Demo" : "Live"}</span>
-        <span className="stats">{data.nodes.length} nodes · {data.links.length} edges</span>
+        <span className={`chip ${demo ? "demo" : "live"}`}><i />{demo ? "Waiting for data" : "Live"}</span>
+        {!demo && <span className="stats">{data.nodes.length} nodes · {data.links.length} edges</span>}
         <span className="spacer" />
         {demo ? (
           <>
-            <button className="btn ghost" onClick={startDemo}>Replay</button>
             <button className="btn" onClick={onConnectClick}>Connect your data</button>
           </>
         ) : (
@@ -329,7 +371,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
             <button className="btn ghost" onClick={async () => { await api("/disconnect", { method: "POST" }).catch(() => {}); onLeave(); }}>Disconnect</button>
           </>
         )}
-        <button className="btn ghost" onClick={() => { setAutoFit(true); fit(); }} aria-label="Re-center">⤢</button>
+        {!demo && <button className="btn ghost" onClick={() => { setAutoFit(true); fit(); }} aria-label="Re-center">⤢</button>}
         {progress && (
           <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={progress.done}>
             <i style={{ width: `${(progress.done / progress.total) * 100}%` }} />
@@ -337,7 +379,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
         )}
       </header>
 
-      <aside className="panel feed" aria-live="polite">
+      {!demo && <aside className="panel feed" aria-live="polite">
         <h2>Live discoveries</h2>
         {status && <p className="status">{(busy || progress) && <span className="spin" />}{status}</p>}
         <ul>
@@ -350,15 +392,15 @@ function Workspace({ session, onLeave, onConnectClick }) {
             </li>
           ))}
         </ul>
-      </aside>
+      </aside>}
 
-      <div className="panel legend" role="group" aria-label="Filter by type">
+      {!demo && legend.length > 0 && <div className="panel legend" role="group" aria-label="Filter by type">
         {legend.map(([k, c]) => (
           <button key={k} className={hidden.has(k) ? "off" : ""} onClick={() => toggle(k)} aria-pressed={!hidden.has(k)}>
             <i style={{ background: color(k) }} />{k} <small>{c}</small>
           </button>
         ))}
-      </div>
+      </div>}
 
       {sel && (
         <div className="panel detail">
@@ -377,7 +419,7 @@ function Workspace({ session, onLeave, onConnectClick }) {
       <div className="panel chat">
         {demo ? (
           <div className="cta">
-            <p>This is a sample graph. Connect an OpenAI key and Neo4j to upload your own PDF, watch its entities appear live and ask questions in natural language.</p>
+            <p>Upload a PDF and watch its entities and relationships appear here live, then ask questions in natural language. Connect an OpenAI key and Neo4j to begin.</p>
             <button className="btn" onClick={onConnectClick}>Connect your data</button>
           </div>
         ) : (
