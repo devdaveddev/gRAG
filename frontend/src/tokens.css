@@ -1,0 +1,49 @@
+/* Design tokens: primitive -> semantic -> component. Components never use raw values. */
+:root {
+  /* ── Primitive ── */
+  --slate-950: #080c18; --slate-900: #0b1020; --slate-800: #131a2e; --slate-700: #1e293b;
+  --slate-600: #334155; --slate-500: #64748b; --slate-400: #94a3b8; --slate-200: #e2e8f0; --slate-50: #f8fafc;
+  --blue-600: #2563eb; --blue-500: #3b82f6; --blue-400: #60a5fa;
+  --red-600: #dc2626; --red-400: #f87171; --green-400: #34d399; --amber-400: #fbbf24;
+  --violet-400: #a78bfa; --pink-400: #f472b6; --cyan-400: #22d3ee;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 999px;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", Menlo, monospace;
+  --text-xs: 11px; --text-sm: 13px; --text-md: 14px; --text-lg: 18px; --text-xl: 28px;
+  --shadow-float: 0 12px 40px rgb(0 0 0 / .45);
+  --blur-glass: 12px;
+  --duration-fast: 150ms;
+
+  /* ── Semantic ── */
+  --color-bg: var(--slate-900);
+  --color-surface: rgb(19 26 46 / .82);          /* floating glass panels */
+  --color-surface-solid: var(--slate-800);
+  --color-field: var(--slate-700);
+  --color-border: rgb(148 163 184 / .2);
+  --color-border-strong: var(--slate-600);
+  --color-text: var(--slate-200);
+  --color-text-strong: var(--slate-50);
+  --color-text-muted: var(--slate-400);
+  --color-primary: var(--blue-600);
+  --color-primary-hover: var(--blue-500);
+  --color-focus: var(--blue-400);
+  --color-danger: var(--red-600);
+  --color-danger-text: var(--red-400);
+  --color-edge: rgb(148 163 184 / .35);
+
+  /* Entity type palette (graph + legend) */
+  --entity-patient: var(--blue-400); --entity-doctor: var(--green-400); --entity-disease: var(--red-400);
+  --entity-symptom: var(--amber-400); --entity-treatment: var(--violet-400); --entity-medication: var(--pink-400);
+  --entity-hospital: var(--cyan-400); --entity-default: var(--slate-400);
+
+  /* ── Component ── */
+  --panel-bg: var(--color-surface); --panel-border: var(--color-border); --panel-radius: var(--radius-lg);
+  --panel-padding: var(--space-4); --panel-shadow: var(--shadow-float);
+  --btn-bg: var(--color-primary); --btn-bg-hover: var(--color-primary-hover); --btn-fg: var(--slate-50);
+  --btn-radius: var(--radius-sm); --btn-pad: var(--space-2) var(--space-3);
+  --btn-ghost-bg: var(--color-border-strong); --btn-danger-bg: var(--color-danger);
+  --input-bg: var(--color-field); --input-border: var(--color-border-strong); --input-radius: var(--radius-sm);
+  --bubble-user-bg: var(--color-primary); --bubble-bot-bg: var(--color-field);
+}

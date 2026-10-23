@@ -1,18 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
+import Setup from "./Setup.jsx";
 
-const COLORS = {
-  Patient: "#4f9dff", Doctor: "#34d399", Disease: "#f87171", Symptom: "#fbbf24",
-  Treatment: "#a78bfa", Medication: "#f472b6", Hospital: "#22d3ee", Entity: "#94a3b8",
-};
-
-async function api(path, opts) {
-  const res = await fetch(`/api${path}`, opts);
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
-  return res.json();
-}
+const TYPES = ["Patient", "Doctor", "Disease", "Symptom", "Treatment", "Medication", "Hospital"];
+// Canvas needs concrete colors, so resolve the CSS tokens once.
+const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const color = (type) => token(`--entity-${(type || "").toLowerCase()}`) || token("--entity-default");
 
 export default function App() {
+  const [session, setSession] = useState(() => sessionStorage.getItem("grag-session"));
+  const connect = (t) => { sessionStorage.setItem("grag-session", t); setSession(t); };
+  const leave = (note) => { sessionStorage.removeItem("grag-session"); setSession(null); };
+  return session ? <Workspace session={session} onLeave={leave} /> : <Setup onConnect={connect} />;
+}
+
+function Workspace({ session, onLeave }) {
+  async function api(path, opts = {}) {
+    const res = await fetch(`/api${path}`, { ...opts, headers: { ...opts.headers, "X-Session": session } });
+    if (res.status === 401) { onLeave(); throw new Error("Session expired"); }
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
+    return res.json();
+  }
+
   const [data, setData] = useState({ nodes: [], links: [] });
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [status, setStatus] = useState("");
@@ -21,6 +30,7 @@ export default function App() {
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("cypher");
   const chatEnd = useRef(null);
+  const fg = useRef(null);
 
   const loadGraph = useCallback(async () => {
     try { setData(await api("/graph")); } catch (e) { setStatus(e.message); }
@@ -78,18 +88,19 @@ export default function App() {
   return (
     <div className="app">
       <ForceGraph2D
+        ref={fg} cooldownTicks={80} onEngineStop={() => fg.current?.zoomToFit(400, 120)}
         width={size.w} height={size.h} graphData={data}
-        backgroundColor="#0b1020"
+        backgroundColor={token("--color-bg")}
         nodeLabel={(n) => `${n.label}: ${n.name}`}
-        nodeColor={(n) => COLORS[n.label] || COLORS.Entity}
-        linkColor={() => "rgba(148,163,184,.35)"}
+        nodeColor={(n) => color(n.label)}
+        linkColor={() => token("--color-edge")}
         linkDirectionalArrowLength={4} linkDirectionalArrowRelPos={1}
         linkLabel="type"
         nodeCanvasObjectMode={() => "after"}
         nodeCanvasObject={(n, ctx, scale) => {
           if (scale < 1.2) return;
           ctx.font = `${10 / scale}px sans-serif`;
-          ctx.fillStyle = "#e2e8f0";
+          ctx.fillStyle = token("--color-text");
           ctx.textAlign = "center";
           ctx.fillText(n.name, n.x, n.y + 9 / scale);
         }}
@@ -103,10 +114,11 @@ export default function App() {
         </label>
         <button className="btn ghost" onClick={loadGraph}>Refresh</button>
         <button className="btn danger" onClick={onClear}>Clear</button>
+        <button className="btn ghost" onClick={async () => { await api("/disconnect", { method: "POST" }).catch(() => {}); onLeave(); }}>Disconnect</button>
         {status && <p className="status">{busy && <span className="spin" />}{status}</p>}
         <div className="legend">
-          {Object.entries(COLORS).slice(0, 7).map(([k, c]) => (
-            <span key={k}><i style={{ background: c }} />{k}</span>
+          {TYPES.map((k) => (
+            <span key={k}><i style={{ background: color(k) }} />{k}</span>
           ))}
         </div>
       </div>

@@ -4,3 +4,4 @@ dist
 __pycache__
 .venv
 .streamlit/secrets.toml
+.playwright-mcp
